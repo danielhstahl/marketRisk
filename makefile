@@ -1,10 +1,10 @@
-INCLUDES=-I../NewtonOptimization -I../FixedIncomeUtilities  -I../BinomialTree -I../rapidjson -I../AutoDiff -I../MonteCarlo
+INCLUDES=-I../GaussNewton -I../FixedIncomeUtilities  -I../BinomialTree -I../rapidjson -I../AutoDiff  -I../MonteCarlo -I../HullWhite -I../FunctionalUtilities -I../rapidjson/include/rapidjson
 
-OptionPricing: main.o
-	g++ -std=c++14 -O3  -w -fPIC main.o  $(LDFLAGS) $(INCLUDES) -o OptionPricing -fopenmp
+marketRisk: main.o
+	g++ -std=c++14 -O3  -w -fPIC main.o  $(LDFLAGS) $(INCLUDES) -o marketRisk -fopenmp
 
-main.o: main.cpp BlackScholes.h BlackScholes.hpp HullWhite.h HullWhite.hpp HullWhiteEngine.h HullWhiteEngine.hpp YieldIO.h YieldIO.hpp RealWorldMeasure.h RealWorldMeasure.hpp
+main.o: main.cpp 
 	g++ -std=c++14 -O3  -w -c -fPIC main.cpp $(LDFLAGS) $(INCLUDES) -fopenmp
 
 clean:
-	-rm *.o OptionPricing
+	-rm *.o marketRisk

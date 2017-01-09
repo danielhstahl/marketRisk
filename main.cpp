@@ -1,191 +1,121 @@
 #define _USE_MATH_DEFINES
 #include <iostream>
-#include "BlackScholes.h"
-#include <cfloat>
-#include "HullWhiteEngine.h"
+#include "HullWhite.h"
 #include <string>
-#include "YieldIO.h"
-#include "RealWorldMeasure.h"
-#include "CurveFeatures.h"
-#include "YieldSpline.h"
-#include <unordered_map>
-#include "HandlePath.h" //for creating sample paths
-#include "MC.h" //monte carlo
-#include "Histogram.h" //bins data
+#include "FunctionalUtilities.h"
 #include "SimulateNorm.h"
+#include "Histogram.h" //bins data
 #include "document.h" //rapidjson
 #include "writer.h" //rapidjson
 #include "stringbuffer.h" //rapidjson
+#define BOND 0
+#define EURODOLLARFUTURE 1
+#define COUPONBOND 2
+#define BONDCALL 3
+#define BONDPUT 4
+#define COUPONBONDCALL 5
+#define COUPONBONDPUT 6
+#define CAPLET 7
+#define SWAP 8 
+#define SWAPTION 9
+#define AMERICANSWAPTION 10
 
- int main(){
+auto square=[](const auto& val){
+    return val*val;
+};
+auto yield=[&](const auto& t, const auto& currRate, const auto& a, const auto& b, const auto& sig){
+    auto at=(1-exp(-a*t))/a;
+    auto ct=(b-sig*sig/(2*a*a))*(at-t)-sig*sig*at*at/(4*a);
+    return (at*currRate-ct);
+};
+auto forward=[&](const auto& t, const auto& currRate, const auto& a, const auto& b, const auto& sig){
+    return b+exp(-a*t)*(currRate-b)-(sig*sig/(2*a*a))*square(1-exp(-a*t));
+};
 
-  /* int n=29;//number of test yields
-    std::vector<SpotValue> testYield;
-    double currRate=.02;
-    double sig=.02;
+int main(int argc, char* argv[]){
+    double Maturity=1.0;
+    const double daysInYear=365;
+    double t=10.0/daysInYear;
+    double Strike=.04;
+    double Tenor=.25;
+    double UnderlyingMaturity=1.25;
+    int type=0;
     double a=.3;
     double b=.04;
-
-    auto bndV=[&](double r, double a, double b, double sigma, double t){
-        double at=(1-exp(-a*t))/a;
-        double ct=sigma*sigma;
-        ct=(b-ct/(2*a*a))*(at-t)-ct*at*at/(4*a);
-        return exp(-at*r+ct);
-    };
-
-
-    Date currDate;
-    for(int i=0; i<n; ++i){
-        testYield.push_back(SpotValue(currDate+(i+1), (1/bndV(currRate, a, b, sig, (currDate+(i+1))-currDate)-1)/((currDate+(i+1))-currDate)));
-      //std::cout<<"price: "<<bndV(currRate, a, b, sig, (currDate+(i+1))-currDate)<<std::endl;
-  }
-  YieldSpline yld(testYield, currDate, currRate);
-    //std::cout<<exp(-yld.Yield(2))<<std::endl;
-  std::vector<double> couponTimes(5);
-  couponTimes[0]=.5;
-  couponTimes[1]=1;
-  couponTimes[2]=1.5;
-  couponTimes[3]=2;
-  couponTimes[4]=2.5;
-    //std::cout<<bndV(currRate, a, b, sig, 1)<<std::endl;
-    //std::cout<<exp(-yld.Yield(1))<<std::endl;
-    //std::cout<<yld.Forward(0)<<std::endl;
-    //std::cout<<Bond_Price(currRate, a, sig, 0, 1, yld)<<std::endl;
-    //double bndt=Bond_Price(1, yld);
-    //std::cout<<"Price: "<<Bond_Price(1.0, yld)<<std::endl;
-
-    //double sig=.02;
-    double strike=.04;
-    double futureTime=.5;
-    double swpMaturity=5.5;
-    double optMaturity=1.5;
-    double delta=.25;
-     AutoDiff curr(currRate, 1.0);
-    //std::cout<<Swaption(currRate, a, sig, strike, futureTime, swpMaturity, optMaturity, delta, yld)<<std::endl;
-    std::cout<<Swaption(currRate, a, sig, strike, 0.0, 4.5, .5, delta, yld)<<std::endl;
-    //std::cout<<AmericanSwaption(currRate, a, sig, strike, futureTime, swpMaturity, optMaturity, delta, yld)<<std::endl;
-
-     std::cout<<AmericanSwaption(currRate, a, sig, strike, 0.0, 4.5, .5, delta, yld)<<std::endl;
-
-     AutoDiff ev=Swaption(curr, a, sig, strike, 0.0, 4.5, .5, delta, yld);
-
-    std::cout<<ev.getStandard()<<std::endl;
-    std::cout<<ev.getDual()<<std::endl;
-
-
-    AutoDiff v=AmericanSwaption(curr, a, sig, strike, 0.0, 4.5, .5, delta, yld);
-    std::cout<<v.getStandard()<<std::endl;
-    std::cout<<v.getDual()<<std::endl;
-    */
-
-
-    Date currDate;   
-    YieldSpline yld;
-    double b;//long run average
-    double daysDiff;//years from now that libor rate goes till (typically 7 days divided by 360)
-    std::vector<SpotValue> historical=populateYieldFromExternalSource(currDate, yld, daysDiff);//this will wait from input from external source
-    yld.getSpotCurve();//send data to node
-    yld.getForwardCurve(); //send data ot node
-    HullWhiteEngine<double> HW;
-    double r0=yld.getShortRate(); //note we can change this here to an AutoDiff if we want sensitivities
+    double sigma=.2;
+    double r0=.02;
+    int n=10000;
     SimulateNorm rNorm;
-    MC<double> monteC;
-    auto runParameters=[&](std::string& parameters){
+    if(argc>1){
         rapidjson::Document parms;
-        parms.Parse(parameters.c_str());//yield data
-        parameters.clear();
-        std::vector<AssetFeatures> portfolio;
-        AssetFeatures asset;
-        //parse the string that came in
-        currDate.setScale("year");
+        parms.Parse(argv[1]);//yield data
         if(parms.FindMember("T")!=parms.MemberEnd()){
-            asset.Maturity=currDate+parms["T"].GetDouble();
+            Maturity=parms["T"].GetDouble();
+        }
+        if(parms.FindMember("t")!=parms.MemberEnd()){
+            t=parms["t"].GetInt()/daysInYear;
         }
         if(parms.FindMember("k")!=parms.MemberEnd()){
-            asset.Strike=parms["k"].GetDouble();
+            Strike=parms["k"].GetDouble();
         }
         if(parms.FindMember("delta")!=parms.MemberEnd()){
-            asset.Tenor=parms["delta"].GetDouble();
+            Tenor=parms["delta"].GetDouble();
         }
         if(parms.FindMember("Tm")!=parms.MemberEnd()){
-            asset.UnderlyingMaturity=currDate+parms["Tm"].GetDouble();
+            UnderlyingMaturity=parms["Tm"].GetDouble();
         }
-        asset.type=parms["asset"].GetInt();
-        double a=parms["a"].GetDouble(); //can be made autodiff too
-        double sigma=parms["sigma"].GetDouble(); //can be made autodiff too
-        HW.setSigma(sigma);
-        HW.setReversion(a);
-        b=findHistoricalMean(historical, daysDiff, a);
-
-        currDate.setScale("day");
-        Date PortfolioMaturity;
-        if(parms.FindMember("t")!=parms.MemberEnd()){
-            PortfolioMaturity=currDate+parms["t"].GetInt();
+        if(parms.FindMember("asset")!=parms.MemberEnd()){
+            type=parms["asset"].GetInt();
         }
-        int m=0;
+        if(parms.FindMember("a")!=parms.MemberEnd()){
+            a=parms["a"].GetDouble();
+        }
+        if(parms.FindMember("b")!=parms.MemberEnd()){
+            b=parms["b"].GetDouble();
+        }
+        if(parms.FindMember("sigma")!=parms.MemberEnd()){
+            sigma=parms["sigma"].GetDouble();
+        }
+        if(parms.FindMember("r0")!=parms.MemberEnd()){
+            r0=parms["r0"].GetDouble();
+        }
         if(parms.FindMember("n")!=parms.MemberEnd()){
-            m=parms["n"].GetInt();
+            n=parms["n"].GetDouble();
         }
-        monteC.setM(m);
-        portfolio.push_back(asset);
-        std::vector<Date> path=getUniquePath(portfolio, PortfolioMaturity);
-
-        monteC.simulateDistribution([&](){
-            return executePortfolio(portfolio, currDate,
-                [&](const auto& currVal, const auto& time){
-                    double vl=rNorm.getNorm();
-                    return generateVasicek(currVal, time, a, b, sigma, vl);
-                },
-                r0,
-                path,
-                [&](AssetFeatures& asset, auto& rate, Date& maturity,   Date& asOfDate){
-                    return HW.HullWhitePrice(asset, rate, maturity, asOfDate, yld);
-                }
-            );
-        });
-
-        std::vector<double> dist=monteC.getDistribution();
-        double min=DBL_MAX; //purposely out of order because actual min and max are found within the function
-        double max=DBL_MIN;
-        binAndSend(min, max, dist); //send histogram to node
-    };
-    while(true){
-        std::string parameters;
-        for (parameters; std::getline(std::cin, parameters);) {
-            break;
-        }
-        runParameters(parameters);
     }
-
-
-
-    /*
-  std::unordered_map<std::string, AutoDiff> parameters;
-  parameters.insert({"Underlying", AutoDiff(50, 0)});
-  parameters.insert({"Strike", AutoDiff(50, 0)});
-  parameters.insert({"Maturity", AutoDiff(1.0, 0)});
-  parameters.insert({"Sigma", AutoDiff(0.3, 0)});
-  parameters.insert({"R", AutoDiff(.03, 0)});
-
-  bool is_first_iteration = true;
-  std::cout<<"The following are the parameters used in this demonstration:"<<std::endl;
-  for(const auto & parameterPair : parameters) {
-     std::cout << parameterPair.first << ": ";
-     std::cout<<parameterPair.second.getStandard();
-     std::cout << std::endl;
-  }
-  std::cout<<"Choose one of the parameters to find the price and derivative with respect to that parameter: ";
-  std::string response;
-  std::cin>>response;
- // std::cout<<response<<std::endl;
-  while(parameters.find(response)==parameters.end()){
-    std::cout<<"Parameter doesn't exist!  Choose a valid parameter:"<<std::endl;
-    std::cin>>response;
-  }
-  parameters.find(response)->second.setDual(1);
-  AutoDiff discount=exp(-parameters.find("R")->second*parameters.find("Maturity")->second);
-  AutoDiff Call=BSCall(parameters.find("Underlying")->second, discount, parameters.find("Strike")->second, parameters.find("Sigma")->second*sqrt(parameters.find("Maturity")->second));
-  AutoDiff Put=BSPut(parameters.find("Underlying")->second, discount, parameters.find("Strike")->second, parameters.find("Sigma")->second*sqrt(parameters.find("Maturity")->second));
-  std::cout<<"Call Price: "<<Call.getStandard()<<" Partial Derivative with respect to "<<response<<": "<<Call.getDual()<<std::endl;
-  std::cout<<"Put Price: "<<Put.getStandard()<<" Partial Derivative with respect to "<<response<<": "<<Put.getDual()<<std::endl;*/
+    
+    auto getType=[&](const auto& rate){
+        auto tmpYield=[&](const auto& t){
+            return yield(t, rate, a, b, sigma);
+        };
+        auto tmpForward=[&](const auto& t){
+            return forward(t, rate, a, b, sigma);
+        };
+        switch(type){
+            case BOND:
+                return hullwhite::Bond_Price(rate, a, sigma, t, Maturity, tmpYield, tmpForward);
+            case EURODOLLARFUTURE:
+                return hullwhite::EuroDollarFuture(rate, a, sigma, t, Maturity, Tenor, tmpYield, tmpForward);
+            case BONDCALL:
+                return hullwhite::Bond_Call(rate, a, sigma, t, Maturity, UnderlyingMaturity, Strike, tmpYield, tmpForward);
+            case BONDPUT:
+                return hullwhite::Bond_Put(rate, a, sigma, t, Maturity, UnderlyingMaturity, Strike, tmpYield, tmpForward);
+            case CAPLET:
+                return hullwhite::Caplet(rate, a, sigma, t, Maturity, Tenor, Strike, tmpYield, tmpForward);
+            case SWAP:
+                return hullwhite::Swap_Price(rate, a, sigma, t, Maturity, Tenor, Strike, tmpYield, tmpForward);//swap rate is strike here...
+            case SWAPTION:
+                return hullwhite::Swaption(rate, a, sigma, Strike, t, UnderlyingMaturity, Maturity, Tenor, tmpYield, tmpForward);
+            case AMERICANSWAPTION:
+                return hullwhite::AmericanSwaption(rate, a, sigma, Strike, t, UnderlyingMaturity, Maturity, Tenor, tmpYield, tmpForward);
+        }
+    };
+    double min=500; //purposely out of order because actual min and max are found within the function
+    double max=-1;
+    auto sendToCall=[&](const auto& val){
+        std::cout<<val<<"\\n";
+    };
+    binAndSend(sendToCall,min, max, futilities::for_each_parallel(0, n, [&](const auto& index){
+        return getType(hullwhite::generateVasicek(r0, a, b, sigma, t, rNorm.getNorm()));
+    })); //send histogram to node
 }
