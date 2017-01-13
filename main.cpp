@@ -113,7 +113,7 @@ int main(int argc, char* argv[]){
     double min=500; //purposely out of order because actual min and max are found within the function
     double max=-1;
     auto sendToCall=[&](const auto& val){
-        std::cout<<val<<"\\n";
+        std::cout<<val;
     };
     binAndSend(sendToCall,min, max, futilities::for_each_parallel(0, n, [&](const auto& index){
         return getType(hullwhite::generateVasicek(r0, a, b, sigma, t, rNorm.getNorm()));
