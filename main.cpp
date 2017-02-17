@@ -83,13 +83,14 @@ int main(int argc, char* argv[]){
             n=parms["n"].GetDouble();
         }
     }
-    auto tmpYield=[&](const auto& t){
-        return yield(t, rate, a, b, sigma);
-    };
-    auto tmpForward=[&](const auto& t){
-        return forward(t, rate, a, b, sigma);
-    };
+    
     auto getType=[&](const auto& rate){
+        auto tmpYield=[&](const auto& t){
+            return yield(t, rate, a, b, sigma);
+        };
+        auto tmpForward=[&](const auto& t){
+            return forward(t, rate, a, b, sigma);
+        };
         switch(type){
             case BOND:
                 return hullwhite::Bond_Price(rate, a, sigma, t, Maturity, tmpYield, tmpForward);
