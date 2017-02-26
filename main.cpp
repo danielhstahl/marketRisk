@@ -95,7 +95,7 @@ int main(int argc, char* argv[]){
             case BOND:
                 return hullwhite::Bond_Price(rate, a, sigma, t, Maturity, tmpYield, tmpForward);
             case EURODOLLARFUTURE:
-                return hullwhite::EuroDollarFuture(rate, a, sigma, t, Maturity, Tenor, tmpYield, tmpForward);
+                return hullwhite::Euro_Dollar_Future(rate, a, sigma, t, Maturity, Tenor, tmpYield, tmpForward);
             case BONDCALL:
                 return hullwhite::Bond_Call(rate, a, sigma, t, Maturity, UnderlyingMaturity, Strike, tmpYield, tmpForward);
             case BONDPUT:
@@ -105,9 +105,9 @@ int main(int argc, char* argv[]){
             case SWAP:
                 return hullwhite::Swap_Price(rate, a, sigma, t, Maturity, Tenor, Strike, tmpYield, tmpForward);//swap rate is strike here...
             case SWAPTION:
-                return hullwhite::Swaption(rate, a, sigma, Strike, t, UnderlyingMaturity, Maturity, Tenor, tmpYield, tmpForward);
+                return hullwhite::Payer_Swaption(rate, a, sigma, Strike, t, UnderlyingMaturity, Maturity, Tenor, tmpYield, tmpForward);
             case AMERICANSWAPTION:
-                return hullwhite::AmericanSwaption(rate, a, sigma, Strike, t, UnderlyingMaturity, Maturity, Tenor, tmpYield, tmpForward);
+                return hullwhite::American_Payer_Swaption(rate, a, sigma, Strike, t, UnderlyingMaturity, Maturity, Tenor, tmpYield, tmpForward);
         }
     };
     double min=500; //purposely out of order because actual min and max are found within the function
