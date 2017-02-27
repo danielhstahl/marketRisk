@@ -22,6 +22,7 @@ before_install:
   - git clone https://github.com/phillyfan1138/HullWhite
   - git clone https://github.com/phillyfan1138/MonteCarlo
   - git clone https://github.com/phillyfan1138/BinomialTree
+  - git clone https://github.com/phillyfan1138/GaussNewton
   - git clone https://github.com/miloyip/rapidjson
   - cd marketRisk
 script:
