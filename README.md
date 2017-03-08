@@ -1,5 +1,15 @@
-[![Build Status](https://travis-ci.org/phillyfan1138/marketRisk.svg?branch=master)](https://travis-ci.org/phillyfan1138/marketRisk)
-[![Build status](https://ci.appveyor.com/api/projects/status/teg0689hfk5qc5te?svg=true)](https://ci.appveyor.com/project/phillyfan1138/marketrisk)
+| [Linux][lin-link] | [Windows][win-link] | [Coveralls][cov-link] |
+| :---------------: | :-----------------: | :-------------------: |
+| ![lin-badge]      | ![win-badge]        | ![cov-badge]          |
+
+[lin-badge]: https://travis-ci.org/phillyfan1138/marketRisk.svg?branch=master "Travis build status"
+[lin-link]:  https://travis-ci.org/phillyfan1138/marketRisk "Travis build status"
+[win-badge]: https://ci.appveyor.com/api/projects/status/5vfdsp398y70758w?svg=true "AppVeyor build status"
+[win-link]:  https://ci.appveyor.com/project/phillyfan1138/marketrisk "AppVeyor build status"
+
+
+
+
 Rewriting of market risk application.  Predominantly used for fixed income.  Assumes interest rate process is generalized Hull White.
 
 Depends on HullWhite repository, Monte Carlo repository (histogram only), and FunctionalUtilities.  External repostiroy is rapidjson.
