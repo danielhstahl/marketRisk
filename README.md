@@ -1,6 +1,6 @@
-| [Linux][lin-link] | [Windows][win-link] | [Coveralls][cov-link] |
-| :---------------: | :-----------------: | :-------------------: |
-| ![lin-badge]      | ![win-badge]        | ![cov-badge]          |
+| [Linux][lin-link] | [Windows][win-link] |
+| :---------------: | :-----------------: | 
+| ![lin-badge]      | ![win-badge]        | 
 
 [lin-badge]: https://travis-ci.org/phillyfan1138/marketRisk.svg?branch=master "Travis build status"
 [lin-link]:  https://travis-ci.org/phillyfan1138/marketRisk "Travis build status"
