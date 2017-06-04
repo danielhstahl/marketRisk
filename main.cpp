@@ -22,7 +22,7 @@
 
 auto square=[](const auto& val){
     return val*val;
-};
+}; 
 auto yield=[&](const auto& t, const auto& currRate, const auto& a, const auto& b, const auto& sig){
     auto at=(1-exp(-a*t))/a;
     auto ct=(b-sig*sig/(2*a*a))*(at-t)-sig*sig*at*at/(4*a);
